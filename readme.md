@@ -1,3 +1,74 @@
+# 💬 Conversational ChatBot with LangChain & OpenAI
+
+## 📌 Goal
+
+---
+
+Build a **stateful chatbot** that keeps track of the conversation using memory. Each input from the user is passed to the LLM along with the entire message history for context-aware replies.
+
+## Components Used
+
+--- 
+
+- ✅ **ChatOpenAI**
+  - Connects to OpenAI’s chat models like gpt-3.5-turbo or gpt-4.
+
+- ✅ **ConversationBufferMemory**
+  - Stores all previous messages and returns them in the format compatible with chat models. Helps maintain context between turns.
+
+- ✅ **Prompt Components:**
+   - **ChatPromptTemplate** – Builds a structured prompt including the current message and past history.
+   - **HumanMessagePromptTemplate** – Template for the user message ({content}).
+   - **MessagesPlaceholder** – Inserts past messages from memory into the prompt.
+
+- ✅ **LLMChain**
+  - Connects the ChatOpenAI model with the structured prompt and memory. Executes a single inference call.
+
+## 🧠 Pipeline Flow
+
+--- 
+```python
+Input: User enters text
+    ↓
+1️⃣ HumanMessagePromptTemplate: Formats the input
+    ↓
+2️⃣ ChatPromptTemplate: Combines input + past memory
+    ↓
+3️⃣ LLMChain: Sends the prompt to OpenAI's chat model
+    ↓
+4️⃣ ConversationBufferMemory: Appends response to history
+    ↓
+Output: Model's reply based on full conversation context
+
+```
+
+## 🔁 Loop Logic
+
+---
+
+The **chatbot** runs in a loop:
+
+```python
+while True:
+    content = input('Enter content: ')
+    result = chain({"content": content})
+    print(result["text"])
+```
+Each new message is passed to the **LLMChain**, which uses both the message and previous conversation stored in memory to generate a response.
+
+## 🧪 Example
+
+---
+
+``Enter content: Who won the World Cup in 2018?``
+``→ France won the 2018 FIFA World Cup. ``
+
+``Enter content: Who was the captain?``
+``→ Hugo Lloris was the captain of the French team in 2018.``
+---
+
+---
+
 # LangChain Sequential Chain
 
 ## 📌 Goal
@@ -65,6 +136,9 @@ Output:
 }
 ```
 
+---
+
+---
 
 # Terminal Chatbot
 
@@ -204,9 +278,9 @@ from langchain.memory import ConversationBufferMemory
 from langchain.memory.chat_message_histories import FileChatMessageHistory
 
 memory = ConversationBufferMemory(
-    memory_key="chat_history",
-    chat_memory=FileChatMessageHistory(file_path="message.json"),
-    return_messages=True
+   memory_key="chat_history",
+   chat_memory=FileChatMessageHistory(file_path="Terminal ChatBot/message.json"),
+   return_messages=True
 )
 ```
 You can also use SQL, PostgreSQL, or other databases for message storage.
@@ -228,3 +302,158 @@ memory = ConversationSummaryMemory(
 
 This memory type integrates with the prompt template and stores concise summaries instead of entire message histories.
 
+---
+
+---
+
+
+# 🧠 Question Answering Model with LangChain
+
+We’re building a Question-Answering (Q/A) system that can search across various types of document files 
+(PDF, TXT, CSV, XLSX, etc.) and retrieve relevant content to answer user queries. We'll use LangChain to 
+manage document loading, processing, and semantic retrieval using embeddings.
+
+## Loading Your Documents
+LangChain provides loader classes to ingest content from different file types such as .txt, .pdf, .csv, .md, .json, .xlsx, etc.
+
+```
+from langchain.document_loaders import TextLoader
+
+loader = TextLoader("facts.txt")
+docs = loader.load()
+```
+The docs is a list of Document objects:
+```commandline
+[Document(page_content="...", metadata={"source": "facts.txt"})]
+```
+
+## 🔍 Basic Retrieval (Without Embeddings)
+Initially, we can split documents into small chunks and **manually match facts** using keyword overlap with the user’s query:
+
+Steps:
+1. Load the document.
+2. Split the content into fact-based chunks.
+3. Compare the query against each chunk.
+4. Return the most relevant facts.
+
+⚠️ This approach fails when the user query is vague or uses different wording.
+
+### Text chunks
+```python
+from langchain_community.document_loaders import TextLoader
+from langchain.text_splitter import CharacterTextSplitter
+
+text_splitter = CharacterTextSplitter(
+    separator="\n",
+    chunk_size=200,
+    chunk_overlap=0,
+)
+
+# loading the files (replace with file you want to divide)
+loader = TextLoader("facts.txt")
+docs = loader.load_and_split(
+    text_splitter=text_splitter
+)
+
+print(docs)
+
+```
+
+
+## 🧠 Semantic Search with Embeddings
+
+To improve accuracy, we use embeddings, which help the system understand the meaning behind queries and text—even when the words differ.
+
+### What is an Embedding?
+An **embedding** is a vector (usually 700–1500 dimensions) that represents a piece of text in numerical space based on its meaning.
+
+- Values range between -1 and 1.
+- Captures semantic features like topic, tone, etc.
+
+### Similarity Metrics:
+| Method               | 	Description   | 
+|----------------------|----------------|
+| **L2 Distance**      | 	Measures how close two vectors are in Euclidean space|
+| **Cosine Similarity** | 	Measures the angle between two vectors (better for high-dim spaces)|
+
+## 🛠️ Embedding-Based Search Pipeline
+
+1. **Split Text into Chunks**
+   - Break large documents into smaller, manageable segments.
+2. **Generate Embeddings for Each Chunk**
+   - Use a model like OpenAI, HuggingFace, or SentenceTransformers.
+3. **Store in a Vector Database**
+   - Examples: FAISS, Chroma, Weaviate, Pinecone, Qdrant
+4. **On User Query:**
+   - Embed the query.
+   - Search for semantically similar document chunks using cosine similarity.
+   - Retrieve top matching contexts to answer the question.
+
+```python
+from langchain_community.embeddings import OpenAIEmbeddings
+
+embedding = OpenAIEmbeddings()
+emb = embeddings.embed_query("hi there")
+
+print(emb)
+```
+
+## 🔢 Why We Use Embedding Models
+
+There are a variety of models available to generate embeddings—each with different characteristics:
+
+1. SentenceTransformer (all-mpnet-base-v2)
+    - Dimension: 768
+    - Open-source model from ***HuggingFace***
+    - Works well for semantic similarity tasks in local/offline setups.
+2. OpenAI Embeddings (text-embedding-ada-002)
+   - Dimension: 1536
+   - Cloud-based, highly optimized for semantic search.
+   - Requires an ***OpenAI API***  key and internet access.
+
+These models convert text into numerical vectors that capture **semantic meaning**, allowing us to compare and retrieve similar content effectively.
+
+---
+
+## 🧱 Why Use ChromaDB?
+
+To store and search these embedding vectors efficiently, we use ChromaDB, a fast and lightweight vector database.
+
+Install via:
+``pip install chromadb``
+
+### 🔍 Why Chroma?
+- ✅ **Simple and Local-first** – Runs out-of-the-box on your machine.
+- ⚡ **Fast Vector Search** – Optimized for cosine similarity and dense retrieval.
+- 🔌 **LangChain Integration** – Seamlessly works with LangChain’s retrievers.
+- 💾 **No External Services Needed** – Perfect for local and private use-cases.
+
+> **ChromaDB** helps us persist embeddings and perform fast similarity search when answering user queries.
+
+```python
+db = Chroma.from_documents(
+    documents=docs, #docs from the loader
+    embedding=embeddings, #embedding model
+    persist_directory="emb" #directiory that store vectors
+)
+
+results = db.similarity_search(
+    "what is an interesting fact about english language",
+    k=2
+)
+```
+
+The ``similarity_search()`` function is used to find the most relevant document chunks based on 
+the semantic meaning of a user’s query. In the line ``results = db.similarity_search("what is an interesting fact about english language", k=2),``
+the query is first converted into an embedding vector and then compared against the stored 
+document vectors in the vector database (such as ChromaDB). The function returns the 
+top ``k`` results—in this case, the 2 most similar chunks—based on cosine similarity. 
+This allows the system to retrieve meaningful context even when the user's question is phrased differently from the original text, 
+making it a core part of embedding-based retrieval in a question-answering pipeline.
+
+This is the core of the retrieval step in a Retrieval-Augmented Generation (RAG) pipeline: 
+- Without understanding exact keywords, the model can find conceptually related text. 
+- Enables your system to pull relevant context before passing it to a language model like ChatGPT.
+
+In these process when every we run the program we are duplicating the vector embedding and storing then so to prevent that to happen we separate the ``text_splitting`` & ``db chromaDB`` into one file.
+and other file belong to actual question and answering.
