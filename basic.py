@@ -5,7 +5,7 @@ dotenv.load_dotenv()
 
 llm = OpenAI()
 
-result = llm("Write very very short poem.")
+result = llm("Can you write code for video peer conferencing?")
 print(result)
 
 # notes:

@@ -15,7 +15,7 @@ text_splitter = CharacterTextSplitter(
 )
 
 # loading the files
-loader = TextLoader("QA/facts.txt")
+loader = TextLoader("/Users/shivangikeshri/Personal/langchain/QA/facts.txt")
 docs = loader.load_and_split(
     text_splitter=text_splitter
 )
@@ -28,7 +28,6 @@ db = Chroma.from_documents(
 
 results = db.similarity_search(
     "what is an interesting fact about english language",
-    k=2
 )
 
 for result in results:

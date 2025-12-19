@@ -1,14 +1,14 @@
+from langchain_community.embeddings import OpenAIEmbeddingsfrom langchain_community.chat_models import ChatOpenAI
+
 # 💬 Conversational ChatBot with LangChain & OpenAI
 
 ## 📌 Goal
 
----
 
 Build a **stateful chatbot** that keeps track of the conversation using memory. Each input from the user is passed to the LLM along with the entire message history for context-aware replies.
 
 ## Components Used
 
---- 
 
 - ✅ **ChatOpenAI**
   - Connects to OpenAI’s chat models like gpt-3.5-turbo or gpt-4.
@@ -58,7 +58,6 @@ Each new message is passed to the **LLMChain**, which uses both the message and 
 
 ## 🧪 Example
 
----
 
 ``Enter content: Who won the World Cup in 2018?``
 ``→ France won the 2018 FIFA World Cup. ``
@@ -67,13 +66,10 @@ Each new message is passed to the **LLMChain**, which uses both the message and 
 ``→ Hugo Lloris was the captain of the French team in 2018.``
 ---
 
----
-
 # LangChain Sequential Chain
 
 ## 📌 Goal
 
-----
 
 Automate a multi-step text generation pipeline using LangChain:
 
@@ -82,7 +78,6 @@ Automate a multi-step text generation pipeline using LangChain:
 
 ## Components used
 
-----
 ✅ **PromptTemplate**
 
 Used to create custom prompts with variables.
@@ -108,7 +103,6 @@ Used to build complex workflows.
 
 ## 🧠 Pipeline Flow
 
-----
 
 ```python
 Input: task + language
@@ -122,7 +116,6 @@ Output: code + test
 
 ## 🧪 Example
 
-----
 
 ```commandline
 python script.py --task "sort an array" --language "Python"
@@ -135,8 +128,6 @@ Output:
   "test": "def test_sort_array(): assert sort_array([3,1,2]) == [1,2,3]"
 }
 ```
-
----
 
 ---
 
@@ -170,8 +161,6 @@ In this project, we use two variables in the prompt:
 
 ## 🧰 Components Used
 
----
-
 ✅ **ChatPromptTemplate:**
  A template for formatting system/human/AI messages.
 ```python
@@ -186,7 +175,6 @@ prompt = ChatPromptTemplate(
 
 Represents a human (user) message in the conversation flow.
 
----
 ## Memory Usage
 
 In LangChain, Memory is used to store and manage information during a chain's execution. It is not limited to just storing chat messages — it can handle any type of state required for the chain's operation.
@@ -233,7 +221,6 @@ Tracks conversation based on token count instead of message count. Ideal for man
 
 Allows combining multiple memory types into one — for example, keeping both a token buffer and a summary.
 
-___
 
 ## Example Use Case
 If you're building a chatbot that should "remember" the conversation context:
@@ -268,7 +255,6 @@ chain = LLMChain(
 
 This setup allows the chatbot to maintain a dynamic memory of the conversation and use it in responses.
 
----
 
 ## 💾 Persistent Memory with File Storage
 If you want to persist memory between program runs, you can use FileChatMessageHistory to store conversations in a file:
@@ -303,9 +289,6 @@ memory = ConversationSummaryMemory(
 This memory type integrates with the prompt template and stores concise summaries instead of entire message histories.
 
 ---
-
----
-
 
 # 🧠 Question Answering Model with LangChain
 
@@ -434,7 +417,7 @@ Install via:
 db = Chroma.from_documents(
     documents=docs, #docs from the loader
     embedding=embeddings, #embedding model
-    persist_directory="emb" #directiory that store vectors
+    persist_directory="QA/emb" #directiory that store vectors
 )
 
 results = db.similarity_search(
@@ -451,9 +434,35 @@ top ``k`` results—in this case, the 2 most similar chunks—based on cosine si
 This allows the system to retrieve meaningful context even when the user's question is phrased differently from the original text, 
 making it a core part of embedding-based retrieval in a question-answering pipeline.
 
-This is the core of the retrieval step in a Retrieval-Augmented Generation (RAG) pipeline: 
+This is the core of the retrieval step in a ``Retrieval-Augmented Generation (RAG)`` pipeline: 
 - Without understanding exact keywords, the model can find conceptually related text. 
 - Enables your system to pull relevant context before passing it to a language model like ChatGPT.
 
-In these process when every we run the program we are duplicating the vector embedding and storing then so to prevent that to happen we separate the ``text_splitting`` & ``db chromaDB`` into one file.
-and other file belong to actual question and answering.
+In this process, every time we run the program, it regenerates and stores the same text embeddings, leading to duplication and inefficiency. 
+To avoid this, we separate the logic into two parts: one file handles text loading, splitting, embedding generation, and storing into ChromaDB, 
+while another file focuses solely on querying the vector database and performing question-answering. 
+
+## Retriever
+A retriever is an object designed to accept a user query (string) and return a list of relevant document chunks. 
+For any object to be used as a retriever in LangChain, it must implement the method ``get_relevant_documents()``, which takes in a string
+and returns a list of ``Document`` objects that match the meaning of the query.
+
+In our workflow, we first run the QA.py file to load, split, and embed documents, storing the vectors inside the QA/emb directory using ChromaDB. Then, we run the vector_embedding.py file, where we load those vectors and use a retriever to fetch matching content. We pass this retriever to a RetrievalQA chain with the "stuff" method, which combines both system and user prompts to guide the LLM in answering the question accurately.
+```python
+chat = ChatOpenAI()
+embeddings=OpenAIEmbeddings()
+db = Chroma(
+    embedding_function=embeddings,
+    persist_directory="emb"
+)
+
+retriever = db.as_retriever()
+
+chain = RetrievalQA.from_chain_type(
+    llm = chat,
+    retriever = retriever,
+    chain_type = "stuff"
+)
+
+result = chain.run("what is an interesting fact about Neil Armstrong ?")
+```

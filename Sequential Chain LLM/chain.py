@@ -29,7 +29,7 @@ llm = OpenAI()
 
 code_prompt = PromptTemplate(
     input_variables=['language', 'task'],
-    template="Write a very short {language} function that will {task}",
+    template="Write a code {language} function that will {task}",
 )
 
 # output without second chain [test chain]
