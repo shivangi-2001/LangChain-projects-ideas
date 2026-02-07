@@ -1,5 +1,3 @@
-from langchain_community.embeddings import OpenAIEmbeddingsfrom langchain_community.chat_models import ChatOpenAI
-
 # 💬 Conversational ChatBot with LangChain & OpenAI
 
 ## 📌 Goal
