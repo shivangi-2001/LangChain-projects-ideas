@@ -445,7 +445,7 @@ A retriever is an object designed to accept a user query (string) and return a l
 For any object to be used as a retriever in LangChain, it must implement the method ``get_relevant_documents()``, which takes in a string
 and returns a list of ``Document`` objects that match the meaning of the query.
 
-In our workflow, we first run the QA.py file to load, split, and embed documents, storing the vectors inside the QA/emb directory using ChromaDB. Then, we run the vector_embedding.py file, where we load those vectors and use a retriever to fetch matching content. We pass this retriever to a RetrievalQA chain with the "stuff" method, which combines both system and user prompts to guide the LLM in answering the question accurately.
+In our workflow, we first run the       QA.py file to load, split, and embed documents, storing the vectors inside the QA/emb directory using ChromaDB. Then, we run the vector_embedding.py file, where we load those vectors and use a retriever to fetch matching content. We pass this retriever to a RetrievalQA chain with the "stuff" method, which combines both system and user prompts to guide the LLM in answering the question accurately.
 ```python
 chat = ChatOpenAI()
 embeddings=OpenAIEmbeddings()
